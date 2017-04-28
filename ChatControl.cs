@@ -9,8 +9,9 @@ using Rocket.Unturned.Events;
 using Rocket.API;
 using UnityEngine;
 using SDG.Unturned;
+using System.Text.RegularExpressions;
 
-namespace fr34kyn01535.ChatControl
+namespace fr34kyn01535.ChatControl 
 {
     public class ChatControl : RocketPlugin<ChatControlConfiguration>
     {
@@ -34,7 +35,7 @@ namespace fr34kyn01535.ChatControl
         protected override void Load()
         {
             Instance = this;
-            MessageColor = UnturnedChat.GetColorFromName(Configuration.Instance.MessageColor,Palette.SERVER);
+            MessageColor = UnturnedChat.GetColorFromName(Configuration.Instance.MessageColor,Palette.Server);
             UnturnedPlayerEvents.OnPlayerChatted += UnturnedPlayerEvents_OnPlayerChatted;
         }
 
@@ -43,13 +44,27 @@ namespace fr34kyn01535.ChatControl
             ChatControlPlayerComponent component = player.GetComponent<ChatControlPlayerComponent>();
 
             if (!player.HasPermission("ChatControl.IgnoreBadwords"))
-                foreach (string badword in ChatControl.Instance.Configuration.Instance.Badwords)
             {
-                if (message.ToLower().Contains(badword.ToLower()))
+                /* Done by IQbrod */
+                String copy = message;
+                Regex pattern = new Regex("[-_.+,^?!@><:;'\"*&%$# /\\|=]");
+                pattern.Replace(copy, "");
+                /* -------------- */
+                foreach (string badword in ChatControl.Instance.Configuration.Instance.Badwords)
                 {
-                        UnturnedChat.Say(player, Translate("badword_detected", badword, ++component.Warnings), MessageColor);
-                    cancel = true;
-                    break;
+                    if (copy.ToLower().Contains(badword.ToLower()))
+                    {
+                        int index = message.ToLower().IndexOf(badword.ToLower());
+                        if (index == 0 || "[-_.+,^?!@><:;'\"*&%$# /\\|=]".Contains(message[index-1]))
+                        {
+                            if ((index + badword.Length == message.Length) || "[-_.+,^?!@><:;'\"*&%$# /\\|=]".Contains(message[index + badword.Length]))
+                            {
+                                UnturnedChat.Say(player, Translate("badword_detected", badword, ++component.Warnings), MessageColor);
+                                cancel = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
